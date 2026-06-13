@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.session import engine, Base
-from app.routers import auth, startups, debate, analytics
+from app.routers import auth, startups, debate, analytics, rag
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -27,14 +27,7 @@ app = FastAPI(
 # CORS configurations
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8081",
-        "http://127.0.0.1:8081",
-        "http://localhost:8082",
-        "http://127.0.0.1:8082",
-        "http://localhost:19006",
-        "http://127.0.0.1:19006"
-    ],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,6 +37,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(startups.router, prefix=settings.API_V1_STR)
 app.include_router(debate.router, prefix=settings.API_V1_STR)
+app.include_router(rag.router, prefix=settings.API_V1_STR)
 app.include_router(analytics.router) # includes /metrics and /api/v1/analytics/costs
 
 # --- WebSocket Progress Streaming ---

@@ -57,7 +57,7 @@ def query_llm_agent(system_prompt: str, user_prompt: str) -> str:
                 }
             }
             logger.info(f"Querying Ollama model {settings.OLLAMA_MODEL} at {url}...")
-            response = httpx.post(url, json=payload, timeout=60.0)
+            response = httpx.post(url, json=payload, timeout=httpx.Timeout(10.0, connect=1.0))
             if response.status_code == 200:
                 content = response.json()["message"]["content"]
                 logger.info("Ollama response received successfully.")
@@ -211,38 +211,87 @@ def run_qa_verification(state: AgentState) -> Dict[str, Any]:
     }
 
 # 4. Multi-Agent Board Room Debate Simulator
-def simulate_boardroom_debate(startup_id: str, topic: str) -> Dict[str, Any]:
+def simulate_boardroom_debate(startup_id: str, topic: str, tone: str = "Collaborative", selected_agents: List[str] = None) -> Dict[str, Any]:
+    if not selected_agents:
+        selected_agents = ["CEO", "CTO", "Finance", "Marketing"]
+        
     system_prompt = (
-        "You are simulating an executive boardroom debate on startup decisions. "
-        "Generate a debate transcript between CEO, CTO, Finance, and Marketing agents."
+        f"You are simulating an executive boardroom debate in a {tone} tone. "
+        f"Generate a debate transcript between the following agents: {', '.join(selected_agents)}."
     )
     # Check live LLM
     response_text = query_llm_agent(system_prompt, f"Debate Topic: {topic}")
     
-    if response_text:
-        return {
-            "transcript": [
-                {"agent": "CEO Agent", "message": "Let's review the strategic path forward."},
-                {"agent": "cto Agent", "message": f"Regarding {topic}, we must secure architecture stability."},
-                {"agent": "Finance Agent", "message": "Budget checks must be monitored."}
-            ],
-            "consensus": response_text[:250],
-            "cost": 0.025
+    agent_messages = {
+        "CEO": {
+            "Collaborative": "Let's work together to find a solution for {topic} that benefits everyone.",
+            "Adversarial": "I need to see strong arguments for {topic}. Don't expect me to sign off on a weak plan.",
+            "Pragmatic": "Let's focus on the easiest path to validate {topic} with minimum effort.",
+            "Academic": "We must analyze the theoretical framework of {topic} before committing capital."
+        },
+        "CTO": {
+            "Collaborative": "I agree with the PM. We can support the tech stack for {topic} using standard REST protocols.",
+            "Adversarial": "No way! Building {topic} now introduces technical debt that will crush us later.",
+            "Pragmatic": "We can deploy a quick serverless function for {topic} in an afternoon.",
+            "Academic": "Let's review the architectural patterns of microservices relative to {topic}."
+        },
+        "Finance": {
+            "Collaborative": "I'll allocate budget to support {topic} comfortably within our runway limits.",
+            "Adversarial": "This is a waste of money! If we fund {topic}, we risk running out of cash in 3 months.",
+            "Pragmatic": "Let's set a strict $500 budget cap on {topic} and cut it off if it exceeds.",
+            "Academic": "Our TAM calculations show that {topic} will impact unit economics by 12%."
+        },
+        "Marketing": {
+            "Collaborative": "Let's build a launch campaign for {topic} that aligns with our core messaging.",
+            "Adversarial": "Marketing is already overloaded! We can't sell {topic} without a clear differentiator.",
+            "Pragmatic": "Let's write a single landing page for {topic} and run some ad-words to test it.",
+            "Academic": "Let's conduct a cohort analysis of our target personas to validate demand for {topic}."
+        },
+        "PM": {
+            "Collaborative": "I've drafted user stories for {topic} that ensure customer success.",
+            "Adversarial": "If we don't build {topic}, our competitors will overtake our core niche.",
+            "Pragmatic": "Let's list the top three features for {topic} and drop the rest.",
+            "Academic": "We need to map the customer journey map for {topic} in detail first."
+        },
+        "QA": {
+            "Collaborative": "I'll create automated tests to ensure {topic} behaves perfectly.",
+            "Adversarial": "This will introduce bugs! {topic} is highly complex and testing will delay us.",
+            "Pragmatic": "I'll run a quick smoke-test on {topic} and check for major breakages.",
+            "Academic": "Let's establish a strict test-coverage threshold of 95% for all {topic} endpoints."
+        },
+        "DevOps": {
+            "Collaborative": "I'll set up CI/CD pipelines to deploy {topic} automatically.",
+            "Adversarial": "Our infrastructure isn't ready for {topic}! We need to scale Kubernetes first.",
+            "Pragmatic": "I'll deploy {topic} on a single VM for now to get it online.",
+            "Academic": "We need to audit our infrastructure security policies regarding {topic} data."
         }
+    }
 
-    # Standard high-fidelity Mock fallback
-    transcript = [
-        {"agent": "CEO Agent", "message": f"To optimize our resource management for {topic}, we must prioritize immediate product validation."},
-        {"agent": "CTO Agent", "message": "Implementing a hybrid state store helps scale first, then we can build custom microservice backends."},
-        {"agent": "Finance Agent", "message": "Agreed. Custom API costs can spike. A strict model router limits usage billing to $5.00 thresholds."},
-        {"agent": "Marketing Agent", "message": "We can position our rapid development speed as our primary differentiator."}
-    ]
-    consensus = f"Focus execution on MVP core screens using local state management to preserve API tokens, with a strict budget monitor set to alert founders at 80% capacity."
-    
+    transcript = []
+    for role in selected_agents:
+        clean_role = role.replace(" Agent", "").replace(" specialist", "")
+        msg_template = agent_messages.get(clean_role, agent_messages["CEO"]).get(tone, agent_messages["CEO"]["Collaborative"])
+        transcript.append({
+            "agent": f"{clean_role} Agent",
+            "message": msg_template.format(topic=topic)
+        })
+
+    if response_text:
+        consensus = response_text[:250]
+    else:
+        if tone == "Collaborative":
+            consensus = f"Consensus reached: Approve the strategic implementation of {topic} through joint team coordination."
+        elif tone == "Adversarial":
+            consensus = f"Consensus reached: Put {topic} on hold until further security audits and cost-benefit analysis are presented."
+        elif tone == "Pragmatic":
+            consensus = f"Consensus reached: Build a rapid MVP prototype for {topic} within a strict $5.00 limit."
+        else:
+            consensus = f"Consensus reached: Research cohort data and build a detailed model before proceeding with {topic}."
+
     return {
         "transcript": transcript,
         "consensus": consensus,
-        "cost": 0.082
+        "cost": round(0.012 * len(selected_agents), 4)
     }
 
 # Create LangGraph state flow

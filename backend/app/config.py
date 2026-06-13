@@ -1,9 +1,22 @@
 import os
+from typing import List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ForgeAI Venture OS"
     API_V1_STR: str = "/api/v1"
+    
+    # CORS Configuration
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:8082",
+        "http://127.0.0.1:8082",
+        "http://localhost:19006",
+        "http://127.0.0.1:19006",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ]
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/forgeai")

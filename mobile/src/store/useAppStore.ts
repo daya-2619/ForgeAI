@@ -42,6 +42,7 @@ interface AppStore {
   tasks: Task[];
   incidents: Incident[];
   debates: Debate[];
+  ragResults: { text: string; metadata: { source: string; category: string } }[];
   totalCost: number;
   isLoading: boolean;
   error: string | null;
@@ -50,18 +51,20 @@ interface AppStore {
   setConnectionStatus: (status: boolean) => void;
   createStartup: (name: string, description: string, budget: number) => Promise<string | null>;
   fetchDashboard: (startupId: string) => Promise<void>;
-  triggerDebate: (startupId: string, topic: str) => Promise<void>;
+  triggerDebate: (startupId: string, topic: string, tone?: string, selectedAgents?: string[]) => Promise<void>;
   fetchDebates: (startupId: string) => Promise<void>;
+  searchRAG: (query: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
-  backendUrl: 'http://localhost:8000', // Default localhost API gateway
+  backendUrl: 'http://127.0.0.1:8000', // Default local API gateway
   isOnline: true,
   activeStartup: null,
   startups: [],
   tasks: [],
   incidents: [],
   debates: [],
+  ragResults: [],
   totalCost: 0.0,
   isLoading: false,
   error: null,
@@ -109,13 +112,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
   
-  triggerDebate: async (startupId, topic) => {
+  triggerDebate: async (startupId, topic, tone = 'Collaborative', selectedAgents = ['CEO', 'CTO', 'Finance', 'Marketing']) => {
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(`${get().backendUrl}/api/v1/startups/${startupId}/boardroom/debate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic }),
+        body: JSON.stringify({ topic, tone, selected_agents: selectedAgents }),
       });
       if (!response.ok) throw new Error('Debate execution failed.');
       
@@ -136,6 +139,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({ debates: data });
     } catch (err: any) {
       console.warn(err.message);
+    }
+  },
+
+  searchRAG: async (query) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`${get().backendUrl}/api/v1/rag/search?query=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Failed to search knowledge base.');
+      const data = await response.json();
+      set({ ragResults: data, isLoading: false });
+    } catch (err: any) {
+      set({ isLoading: false, error: err.message });
     }
   }
 }));

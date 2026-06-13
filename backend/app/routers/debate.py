@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import List
 
 from app.config import settings
 from app.db.session import get_db
@@ -12,6 +13,8 @@ router = APIRouter(prefix="/startups", tags=["Board Room Debate"])
 
 class DebatePrompt(BaseModel):
     topic: str
+    tone: str = "Collaborative"
+    selected_agents: List[str] = ["CEO", "CTO", "Finance", "Marketing"]
 
 @router.post("/{startup_id}/boardroom/debate")
 def run_debate(
@@ -31,7 +34,12 @@ def run_debate(
             detail="Startup not found or unauthorized access"
         )
         
-    debate = simulate_boardroom_debate(startup_id, payload.topic)
+    debate = simulate_boardroom_debate(
+        startup_id, 
+        payload.topic, 
+        tone=payload.tone, 
+        selected_agents=payload.selected_agents
+    )
     
     decision = models.Decision(
         startup_id=startup_id,

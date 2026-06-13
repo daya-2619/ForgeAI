@@ -5,9 +5,10 @@ import { Colors, Typography } from './src/theme';
 import { StartupBuilderScreen } from './src/screens/StartupBuilderScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { BoardRoomScreen } from './src/screens/BoardRoomScreen';
+import { RAGExplorerScreen } from './src/screens/RAGExplorerScreen';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'builder' | 'dashboard' | 'boardroom'>('builder');
+  const [activeTab, setActiveTab] = useState<'builder' | 'dashboard' | 'boardroom' | 'playbooks'>('builder');
 
   const renderContent = () => {
     switch (activeTab) {
@@ -17,6 +18,8 @@ export default function App() {
         return <DashboardScreen />;
       case 'boardroom':
         return <BoardRoomScreen />;
+      case 'playbooks':
+        return <RAGExplorerScreen />;
     }
   };
 
@@ -64,6 +67,15 @@ export default function App() {
         >
           <Text style={[styles.navText, activeTab === 'boardroom' && styles.activeNavText]}>
             Board Room
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.navItem, activeTab === 'playbooks' && styles.activeNavItem]} 
+          onPress={() => setActiveTab('playbooks')}
+        >
+          <Text style={[styles.navText, activeTab === 'playbooks' && styles.activeNavText]}>
+            Playbooks
           </Text>
         </TouchableOpacity>
       </View>
