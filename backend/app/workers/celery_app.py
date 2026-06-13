@@ -92,7 +92,7 @@ def run_venture_generation_task(startup_id: str, idea_prompt: str):
         
         cost_entry = models.TokenCost(
             task_id=task_pm.id,
-            model_name="claude-3-5-sonnet",
+            model_name=settings.OLLAMA_MODEL,
             prompt_tokens=1500,
             completion_tokens=2200,
             exact_cost_usd=result.get("accumulated_cost", 0.1)

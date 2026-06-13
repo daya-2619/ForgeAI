@@ -4,6 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiolo.org)
 [![Expo React Native](https://img.shields.io/badge/Mobile-Expo%20React%20Native-000000?logo=expo&logoColor=white)](https://expo.dev)
 [![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-FF6F00?logo=chainlink&logoColor=white)](https://github.com/langchain-ai/langgraph)
+[![Ollama](https://img.shields.io/badge/LLM-Ollama-blue?logo=ollama&logoColor=white)](https://ollama.com)
 
 ForgeAI is a mobile-first, production-grade **Venture Operating System (VOS)** designed specifically for the next generation of AI-native startups. By integrating deep semantic retrieval (RAG), autonomous multi-agent software engineering workforces, and collaborative agent negotiation structures, ForgeAI enables founders to transition from a single conceptual sentence to an investor-demo-ready, architecturally-sound business plan, dynamic mock screens, database schemas, and codebase blueprints in minutes.
 
@@ -50,15 +51,17 @@ graph TD
     LangGraphEngine -- Semantic Search --> Qdrant
     Qdrant -- Context Injection --> LangGraphEngine
     
-    subgraph External AI Services
-        OpenAI[OpenAI API]
-        Claude[Anthropic Claude API]
-        Gemini[Google Gemini API]
+    subgraph Local & Cloud AI Services
+        Ollama[Local Ollama Service]
+        OpenAI[OpenAI API (Fallback)]
+        Claude[Anthropic Claude API (Fallback)]
+        Gemini[Google Gemini API (Fallback)]
     end
     
-    LangGraphEngine -- Model Routing & Fallback --> OpenAI
-    LangGraphEngine -- Model Routing & Fallback --> Claude
-    LangGraphEngine -- Model Routing & Fallback --> Gemini
+    LangGraphEngine -- Primary LLM Engine --> Ollama
+    LangGraphEngine -- Fallback Routing --> OpenAI
+    LangGraphEngine -- Fallback Routing --> Claude
+    LangGraphEngine -- Fallback Routing --> Gemini
 ```
 
 ### LangGraph Agent Workflow
@@ -180,6 +183,8 @@ Ensure you have the following installed on your machine:
     CELERY_BROKER_URL=redis://localhost:6379/0
     CELERY_RESULT_BACKEND=redis://localhost:6379/0
     JWT_SECRET_KEY=your-custom-jwt-secret-key
+    OLLAMA_BASE_URL=http://localhost:11434
+    OLLAMA_MODEL=llama3:latest
     OPENAI_API_KEY=your-openai-api-key
     GEMINI_API_KEY=your-gemini-api-key
     CLAUDE_API_KEY=your-claude-api-key

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
+from app.config import settings
 from app.db.session import get_db
 from app.db import models
 from app.routers.auth import get_current_user
@@ -47,7 +48,7 @@ def run_debate(
         if task:
             cost_entry = models.TokenCost(
                 task_id=task.id,
-                model_name="claude-3-5-sonnet",
+                model_name=settings.OLLAMA_MODEL,
                 prompt_tokens=800,
                 completion_tokens=1500,
                 exact_cost_usd=debate["cost"]

@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "mock-gemini-key")
     CLAUDE_API_KEY: str = os.getenv("CLAUDE_API_KEY", "mock-claude-key")
     
+    # Ollama Local LLM Configuration
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3:latest")
+    
     # Vector DB
     QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))

@@ -18,9 +18,56 @@ class AgentState(TypedDict):
     accumulated_cost: float
     current_step: str
 
+def extract_json(text: str) -> str:
+    """Extracts raw JSON block from LLM response text, ignoring markdown markers and commentary."""
+    text = text.strip()
+    if "```json" in text:
+        try:
+            text = text.split("```json")[1].split("```")[0].strip()
+        except Exception:
+            pass
+    elif "```" in text:
+        try:
+            text = text.split("```")[1].split("```")[0].strip()
+        except Exception:
+            pass
+            
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1:
+        return text[first_brace:last_brace+1]
+    return text
+
 # Helper to dispatch prompt queries to live LLM engines if keys are configured
 def query_llm_agent(system_prompt: str, user_prompt: str) -> str:
-    # 1. Check for active Gemini API Key
+    # 1. First choice: Local Ollama LLM
+    if settings.OLLAMA_BASE_URL:
+        try:
+            import httpx
+            url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/chat"
+            payload = {
+                "model": settings.OLLAMA_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "stream": False,
+                "options": {
+                    "temperature": 0.0
+                }
+            }
+            logger.info(f"Querying Ollama model {settings.OLLAMA_MODEL} at {url}...")
+            response = httpx.post(url, json=payload, timeout=60.0)
+            if response.status_code == 200:
+                content = response.json()["message"]["content"]
+                logger.info("Ollama response received successfully.")
+                return content
+            else:
+                logger.warning(f"Ollama returned status code {response.status_code}: {response.text}")
+        except Exception as e:
+            logger.warning(f"Failed to query Ollama API ({e}). Falling back.")
+
+    # 2. Check for active Gemini API Key (Fallback)
     if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("mock"):
         try:
             from langchain_community.chat_models import ChatGoogleGenerativeAI
@@ -34,7 +81,7 @@ def query_llm_agent(system_prompt: str, user_prompt: str) -> str:
         except Exception as e:
             logger.warning(f"Failed to query Gemini API ({e}). Falling back.")
 
-    # 2. Check for active OpenAI API Key
+    # 3. Check for active OpenAI API Key (Fallback)
     if settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("mock"):
         try:
             from langchain_community.chat_models import ChatOpenAI
@@ -68,7 +115,8 @@ def run_pm_agent(state: AgentState) -> Dict[str, Any]:
     
     if response_text:
         try:
-            prd = json.loads(response_text)
+            cleaned_response = extract_json(response_text)
+            prd = json.loads(cleaned_response)
             cost = 0.015 # Calculate standard fee
         except Exception:
             logger.error("Failed to parse LLM JSON output. Reverting to fallback.")
@@ -116,7 +164,8 @@ def run_architect_agent(state: AgentState) -> Dict[str, Any]:
     
     if response_text:
         try:
-            architecture = json.loads(response_text)
+            cleaned_response = extract_json(response_text)
+            architecture = json.loads(cleaned_response)
             cost = 0.02
         except Exception:
             response_text = ""
